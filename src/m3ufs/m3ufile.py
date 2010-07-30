@@ -49,6 +49,13 @@ class M3uFile(object):
         finally:
             file.close()
 
+    def iter_files(self):
+        return self
+    
+    def next(self):
+        pass
+    
+
 
 if __name__=="__main__":
     class Logger(object):
