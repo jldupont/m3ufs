@@ -72,6 +72,7 @@ class M3uFS(Fuse):
     def readlink(self, path):
         return "/tmp/symlink"
         
+
 def create_logger(m3ufilepath, name):
     if m3ufilepath is None:
         print "m3ufs: invalid m3u file path"
@@ -92,13 +93,12 @@ def create_logger(m3ufilepath, name):
 def main():
     fuse.fuse_python_api=(0, 2)
     fs = M3uFS(version="%prog "+fuse.__version__, usage=usage, dash_s_do="setsingle")
-    fs.parser.add_option(mountopt="m3u", default="", help="M3u file path")
+    fs.parser.add_option(mountopt="m3u", default="", help=".m3u file path")
     fs.flags = 0
     fs.multithreaded = False
     fs.parse(values=fs, errex=1)
     logger=create_logger(fs.m3u, "m3ufs")
     fs.set_logger(logger)
-    print fs.m3u
     try:
         fs.main()
     except Exception,e:
