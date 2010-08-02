@@ -101,7 +101,16 @@ class M3uFS(Fuse):
     def readlink(self, path):
         self.logger.info("readlink: path: %s" % path)
         
-        return "/tmp/symlink"
+        if path.startswith("/music/"):
+            ln=path[7:]
+            return self.symlinks[ln]
+            
+        if path.startswith("/unknown/"):
+            link_name=path[9:]
+            return link_name
+        
+        return -errno.ENOENT
+            
         
     def _processM3uFile(self):
         if self.m3ufile is None:
