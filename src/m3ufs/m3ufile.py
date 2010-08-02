@@ -17,6 +17,8 @@ class M3uFile(object):
         """
         Verifies if the underlying .m3u changed
         since the last processing
+        
+        @return: False: no change, True: change detected
         """
         try:
             mtime=os.path.getmtime(self.path)
@@ -25,12 +27,13 @@ class M3uFile(object):
             return
         
         if mtime==self.modif:
-            return
+            return False
         
         self.modif=mtime
         
         self.logger.info("Processing .m3u file")
         self._process()
+        return True
         
     def _process(self):
         self.files=[]
@@ -47,13 +50,9 @@ class M3uFile(object):
         except Exception,e:
             self.logger.error("Error processing .m3u file (%s)" % e)
         finally:
-            file.close()
+            try:    file.close()
+            except: pass
 
-    def iter_files(self):
-        return self
-    
-    def next(self):
-        pass
     
 
 

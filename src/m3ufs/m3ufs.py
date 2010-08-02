@@ -8,12 +8,20 @@ import os
 import errno, stat
 
 try:
-    import fuse
-    from fuse import Fuse
+    import fuse           #@UnresolvedImport
+    from fuse import Fuse #@UnresolvedImport
 except:
     print "m3ufs: requires python-fuse"
     sys.exit(1)
     
+try:
+    import mutagen  #@UnusedImport
+except:
+    print "m3ufs: requires python-mutagen"
+    sys.exit(1)
+    
+from mp3file import get_id3_params
+from m3ufile import M3uFile
 
 thisdir=os.path.dirname(__file__)
 sys.path.insert(0, thisdir)
@@ -42,6 +50,11 @@ class M3uFS(Fuse):
     def __init__(self, *args, **kargs):
         Fuse.__init__(self, *args, **kargs)
         self.m3u=None
+        self.symlinks={}
+        self.music=[]
+        self.unknown=[]
+        self.m3ufile=None
+        self.logger=None
         
     def set_logger(self, logger):
         self.logger=logger
@@ -53,8 +66,9 @@ class M3uFS(Fuse):
         self.logger.destroy()
         
     def getattr(self, path):
+        self.logger.info("getattr: path: %s" % path)
         st = BlankStat()
-        if path == '/':
+        if path == '/' or path=="/unknown" or path=="/music":
             st.st_mode = stat.S_IFDIR | 0755
             st.st_nlink = 2
         else:
@@ -64,13 +78,59 @@ class M3uFS(Fuse):
 
     def readdir(self, path, offset):
         self.logger.info("readdir: path: %s - offset: %s" % (path, offset))
-        dirNames=[".", "..", "files"]
+        dirNames=[".", ".."]
         
+        if path=="/":
+            dirNames.extend(["music", "unknown"])
+            
+        if path=="/music" or path=="/unknown":
+            r=self._processM3uFile()
+            if r:
+                self._processMp3Files()
+                self._generateSymlinks()
+            
+        if path=="/music":
+            dirNames.extend(self.symlinks.keys())
+                
+        if path=="/unknown":
+            dirNames.extend(self.unknown)
+            
         for i in dirNames:
             yield fuse.Direntry(i)
 
     def readlink(self, path):
+        self.logger.info("readlink: path: %s" % path)
+        
         return "/tmp/symlink"
+        
+    def _processM3uFile(self):
+        if self.m3ufile is None:
+            self.m3ufile=M3uFile(self.m3u, self.logger)
+            
+        return self.m3ufile.refresh()
+        
+    def _processMp3Files(self):
+        self.music=[]
+        self.unknown=[]
+        
+        for file in self.m3ufile.files:
+            try:    
+                artist, album, title=get_id3_params(file)
+                self.music.append((file, artist, album, title))
+            except:
+                self.unknown.append(file)
+                
+        self.logger.info("music:   %s" % len(self.music))
+        self.logger.info("unknown: %s" % len(self.unknown))
+
+    def _generateSymlinks(self):
+        self.symlinks={}
+        
+        for entry in self.music:
+            file, artist, album, title=entry
+            link_name="%s-%s-%s.mp3" % (artist, album, title)
+            self.symlinks[link_name]=file
+            self.logger.info(">> symlink: [%s] -> [%s]" % (link_name, file))
         
 
 def create_logger(m3ufilepath, name):
