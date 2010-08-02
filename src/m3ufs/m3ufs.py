@@ -128,7 +128,8 @@ class M3uFS(Fuse):
         
         for entry in self.music:
             file, artist, album, title=entry
-            link_name="%s-%s-%s.mp3" % (artist, album, title)
+            ln="%s-%s-%s.mp3" % (artist, album, title)
+            link_name=ln.encode("UTF-8")
             self.symlinks[link_name]=file
             self.logger.info(">> symlink: [%s] -> [%s]" % (link_name, file))
         
