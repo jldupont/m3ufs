@@ -40,7 +40,7 @@ class M3uFile(object):
         try:
             file=open(self.path, "r")
             for line in file:
-                l=line.lstrip()
+                l=line.lstrip().rstrip("\n")
                 if l.startswith("#"):
                     continue
                 self.files.append(l)

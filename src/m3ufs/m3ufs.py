@@ -72,8 +72,8 @@ class M3uFS(Fuse):
             st.st_mode = stat.S_IFDIR | 0755
             st.st_nlink = 2
         else:
-            st.st_mode = stat.S_IFLNK | 0777
-            st.st_nlink = 2  
+            st.st_mode = stat.S_IFLNK | 0666
+            st.st_nlink = 2 
         return st
 
     def readdir(self, path, offset):
@@ -138,7 +138,7 @@ class M3uFS(Fuse):
         for entry in self.music:
             file, artist, album, title=entry
             ln="%s-%s-%s.mp3" % (artist, album, title)
-            link_name=ln.encode("UTF-8")
+            link_name=ln.encode("UTF-8").replace("/", "_")#.replace(" ", "\ ")
             self.symlinks[link_name]=file
             self.logger.info(">> symlink: [%s] -> [%s]" % (link_name, file))
         
